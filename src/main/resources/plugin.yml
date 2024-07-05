@@ -1,0 +1,15 @@
+name: PlayersSleepingPercentage
+version: '${project.version}'
+main: net.sowgro.psp.PlayersSleepingPercentage
+api-version: '1.16'
+
+commands:
+  playersSleepingPercentage:
+    description: Set the percentage of players required to sleep
+    usage: "§cUsage: /playersSleepingPercentage <percentage>"
+    permission: playersSleepingPercentage
+
+permissions:
+  playersSleepingPercentage:
+    default: op
+    description: Allows you to set the percentage of players required to sleep
