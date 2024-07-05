@@ -5,9 +5,9 @@ This plugin is very simple and could probably be compiled for older versions wit
 
 ### Command / Permission
 
-| Command                                  | Description                                               | Permission                  |
-|------------------------------------------|-----------------------------------------------------------|-----------------------------|
-| `playerssleepingpercentage <percentage>` | Set the percentage of players required to sleep the night | `playersSleepingPercentage` |
+| Command                                  | Description                                              | Permission                  |
+|------------------------------------------|----------------------------------------------------------|-----------------------------|
+| `playerssleepingpercentage <percentage>` | Set the percentage of players required to skip the night | `playersSleepingPercentage` |
 
 ### Config
 ```yaml
