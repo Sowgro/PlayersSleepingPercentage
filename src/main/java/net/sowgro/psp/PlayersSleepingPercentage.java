@@ -13,6 +13,6 @@ public class PlayersSleepingPercentage extends JavaPlugin {
         plugin = this;
         saveDefaultConfig();
         getServer().getPluginManager().registerEvents(new SleepListener(), this);
-        Objects.requireNonNull(plugin.getCommand("playersSleepingPercentage")).setExecutor(new Command());
+        Objects.requireNonNull(plugin.getCommand("playersSleepingPercentage")).setExecutor(new CommandHandler());
     }
 }

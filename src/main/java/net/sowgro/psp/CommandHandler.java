@@ -11,7 +11,7 @@ import java.util.List;
 import static net.sowgro.psp.PlayersSleepingPercentage.plugin;
 
 
-public class Command implements CommandExecutor, TabCompleter {
+public class CommandHandler implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, org.bukkit.command.Command command, String label, String[] args) {
 
@@ -34,10 +34,10 @@ public class Command implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        if (val < 0 || val > 100) {
-            sender.sendMessage(ChatColor.RED + "Input must be between 0 and 100 inclusive!");
-            return false;
-        }
+//        if (val < 0 || val > 100) {
+//            sender.sendMessage(ChatColor.RED + "Input must be between 0 and 100 inclusive!");
+//            return false;
+//        }
 
         plugin.getConfig().set("PlayersSleepingPercentage", val);
         sender.sendMessage(ChatColor.GREEN + "Set to " + val);
