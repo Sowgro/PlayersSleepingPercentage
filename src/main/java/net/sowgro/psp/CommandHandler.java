@@ -10,7 +10,9 @@ import java.util.List;
 
 import static net.sowgro.psp.PlayersSleepingPercentage.plugin;
 
-
+/**
+ * Parses and handles commands
+ */
 public class CommandHandler implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, org.bukkit.command.Command command, String label, String[] args) {

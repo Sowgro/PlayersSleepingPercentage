@@ -7,22 +7,18 @@ import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
 import java.util.List;
 
 import static net.sowgro.psp.PlayersSleepingPercentage.plugin;
 
+/**
+ * Manages the players sleeping for a specific world
+ */
 public class SleepManager {
-
-    private static final HashMap<World, SleepManager> worldListeners = new HashMap<>();
-
-    public static SleepManager fromWorld(World world) {
-        worldListeners.putIfAbsent(world, new SleepManager(world));
-        return worldListeners.get(world);
-    }
 
     Integer taskID;
     World world;
+    long prevPlayersSleeping = 0;
 
     public SleepManager(World world) {
         this.world = world;
@@ -62,6 +58,11 @@ public class SleepManager {
         int playersTotal = world.getPlayers().size();
         int configPercent = plugin.getConfig().getInt("PlayersSleepingPercentage", 100);
         int playersRequired = (int) Math.ceil(configPercent / 100.0 * playersTotal);
+
+        if (playersSleeping == 0 && prevPlayersSleeping == 0) {
+            return false;
+        }
+        prevPlayersSleeping = playersSleeping;
 
         if (playersSleeping >= playersRequired) {
             String s = "Skipping the night";
