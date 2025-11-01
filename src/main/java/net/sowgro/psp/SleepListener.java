@@ -1,11 +1,14 @@
 package net.sowgro.psp;
 
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.*;
+import org.bukkit.event.world.TimeSkipEvent;
 
 import java.util.HashMap;
+import java.util.stream.Stream;
 
 /**
  * Handles sleep events and stores sleep managers for each world
@@ -20,37 +23,86 @@ public class SleepListener implements Listener {
     }
 
     @EventHandler
+    public void onTimeSkip(TimeSkipEvent event) {
+        if (event.getSkipReason() != TimeSkipEvent.SkipReason.NIGHT_SKIP) {
+            return;
+        }
+
+        event.setCancelled(true);
+    }
+
+    @EventHandler
     public void onPlayerBedEnter(PlayerBedEnterEvent event) {
         if (event.getBedEnterResult() != PlayerBedEnterEvent.BedEnterResult.OK) {
             return;
         }
 
-        World world = event.getPlayer().getWorld();
-        getManager(world).update(1, event.getPlayer());
+        Player player = event.getPlayer();
+        SleepManager manager = getManager(player.getWorld());
+        SleepManager.UpdateContext cxt = manager.new UpdateContext();
+
+        cxt.playerThatCaused = player;
+        cxt.playersSleeping.add(player);
+        manager.update(cxt);
     }
 
     @EventHandler
     public void onPlayerBedLeave(PlayerBedLeaveEvent event) {
-        World world = event.getPlayer().getWorld();
-        getManager(world).update(-1, null);
+        Player player = event.getPlayer();
+        SleepManager manager = getManager(player.getWorld());
+        SleepManager.UpdateContext cxt = manager.new UpdateContext();
+
+        cxt.playersSleeping.remove(player);
+        manager.update(cxt);
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        World world = event.getPlayer().getWorld();
-        getManager(world).update(0, null);
+        Player player = event.getPlayer();
+        SleepManager manager = getManager(player.getWorld());
+        SleepManager.UpdateContext cxt = manager.new UpdateContext();
+
+        manager.update(cxt);
     }
 
     @EventHandler
     public void onPlayerLeave(PlayerQuitEvent event) {
-        World world = event.getPlayer().getWorld();
-        getManager(world).update(0, null);
+        Player player = event.getPlayer();
+        SleepManager manager = getManager(player.getWorld());
+        SleepManager.UpdateContext cxt = manager.new UpdateContext();
+
+        cxt.playersTotal.remove(player);
+        cxt.playersSleeping.remove(player);
+        manager.update(cxt);
     }
 
     @EventHandler
-    public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
-        World world = event.getPlayer().getWorld();
-        getManager(world).update(0, null);
+    public void onPlayerTeleport(PlayerTeleportEvent event) {
+        if (event.getTo() == null || event.getFrom().getWorld() == event.getTo().getWorld()) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+
+        {
+            SleepManager manager = getManager(event.getFrom().getWorld());
+            SleepManager.UpdateContext cxt = manager.new UpdateContext();
+
+            cxt.playersTotal.remove(player);
+            cxt.playersSleeping.remove(player);
+            manager.update(cxt);
+        }
+
+        {
+            SleepManager manager = getManager(event.getTo().getWorld());
+            SleepManager.UpdateContext cxt = manager.new UpdateContext();
+
+            cxt.playersTotal.add(player);
+            if (player.isSleeping()) {
+                cxt.playersSleeping.add(player);
+            }
+            manager.update(cxt);
+        }
     }
 
 }

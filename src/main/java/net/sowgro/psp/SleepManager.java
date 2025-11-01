@@ -8,6 +8,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static net.sowgro.psp.PlayersSleepingPercentage.plugin;
 
@@ -25,8 +26,8 @@ public class SleepManager {
         taskID = -1;
     }
 
-    void update(int offset, Player player) {
-        if (enoughPlayersToSleep(offset, player)) {
+    void update(UpdateContext context) {
+        if (enoughPlayersToSleep(context)) {
             if (taskID == null) {
                 taskID = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, this::skipNight, 100L);
             }
@@ -48,41 +49,54 @@ public class SleepManager {
     /**
      * Decides if there are enough players sleeping to satisfy the percentage in the config
      *
-     * @param offset Used to offset the number of players counted as sleeping. The player who just entered/left a bed is not recognized as sleeping so 1 / -1 is passed in after those events
+     * @param ctx update context
      * @return True if there are enough players sleeping
      */
-    private boolean enoughPlayersToSleep(int offset, Player player) {
-        List<Player> players = world.getPlayers();
-
-        long playersSleeping = players.stream().filter(LivingEntity::isSleeping).count() + offset;
-        int playersTotal = world.getPlayers().size();
+    private boolean enoughPlayersToSleep(UpdateContext ctx) {
+        int nPlayersSleeping = ctx.playersSleeping.size();
+        int nPlayersTotal = ctx.playersTotal.size();
         int configPercent = plugin.getConfig().getInt("PlayersSleepingPercentage", 100);
-        int playersRequired = (int) Math.ceil(configPercent / 100.0 * playersTotal);
+        int nPlayersRequired = (int) Math.ceil(configPercent / 100.0 * nPlayersTotal);
 
-        if (playersSleeping == 0 && prevPlayersSleeping == 0) {
+        if ((nPlayersSleeping == 0 && prevPlayersSleeping == 0) || isDay(world.getTime())) {
             return false;
         }
-        prevPlayersSleeping = playersSleeping;
+        prevPlayersSleeping = nPlayersSleeping;
 
-        if (playersSleeping >= playersRequired) {
+        if (nPlayersSleeping >= nPlayersRequired) {
             String s = "Skipping the night";
-            players.forEach(p -> sendActionBar(p, s));
-        } else if (configPercent > 100) {
-            String s = "Skipping the night is disabled";
-            sendActionBar(player, s);
-        } else if (configPercent == 100) {
-            String s = String.format("%s/%s players sleeping", playersSleeping, playersTotal);
-            players.forEach(p -> sendActionBar(p, s));
-        } else {
-            String s = String.format("%s/%s players sleeping (%s required)", playersSleeping, playersTotal, playersRequired);
-            players.forEach(p -> sendActionBar(p, s));
+            ctx.playersTotal.forEach(p -> sendActionBar(p, s));
+            return true;
         }
 
-        return playersSleeping >= playersRequired;
+        if (configPercent > 100) {
+            String s = "Skipping the night is disabled";
+            sendActionBar(ctx.playerThatCaused, s);
+        } else if (configPercent == 100) {
+            String s = String.format("%s/%s players sleeping", nPlayersSleeping, nPlayersTotal);
+            ctx.playersTotal.forEach(p -> sendActionBar(p, s));
+        } else {
+            String s = String.format("%s/%s players sleeping (%s required)", nPlayersSleeping, nPlayersTotal, nPlayersRequired);
+            ctx.playersTotal.forEach(p -> sendActionBar(p, s));
+        }
+        return false;
     }
 
     void sendActionBar(Player player, String message) {
-        if (player == null) return;
+        if (player == null) {
+            return;
+        }
+
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
+    }
+
+    boolean isDay(long time) {
+        return time < 12300 || time > 23850;
+    }
+
+    public class UpdateContext {
+        public List<Player> playersTotal = world.getPlayers();
+        public List<Player> playersSleeping = playersTotal.stream().filter(LivingEntity::isSleeping).collect(Collectors.toList());
+        public Player playerThatCaused = null;
     }
 }
