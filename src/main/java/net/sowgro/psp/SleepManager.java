@@ -8,7 +8,6 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static net.sowgro.psp.PlayersSleepingPercentage.plugin;
 
@@ -26,12 +25,20 @@ public class SleepManager {
         taskID = -1;
     }
 
-    void update(UpdateContext ctx) {
-        if (enoughPlayersToSleep(ctx)) {
+    public void update() {
+        update(null);
+    }
+
+    public void update(Player caused) {
+        Bukkit.getScheduler().runTask(plugin, () -> updateTask(caused));
+    }
+
+    private synchronized void updateTask(Player caused) {
+        if (enoughPlayersToSleep(caused)) {
             if (taskID == null) {
                 String s = "Skipping the night";
-                ctx.playersTotal.forEach(p -> sendActionBar(p, s));
-                taskID = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, this::skipNight, 100L);
+                world.getPlayers().forEach(p -> sendActionBar(p, s));
+                taskID = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, this::skipNightTask, 100L);
             }
         } else {
             if (taskID != null) {
@@ -41,7 +48,7 @@ public class SleepManager {
         }
     }
 
-    public void skipNight() {
+    private synchronized void skipNightTask() {
         world.setTime(0);
         world.setStorm(false);
         world.setThundering(false);
@@ -51,12 +58,14 @@ public class SleepManager {
     /**
      * Decides if there are enough players sleeping to satisfy the percentage in the config
      *
-     * @param ctx update context
+     * @param caused event sender
      * @return True if there are enough players sleeping
      */
-    private boolean enoughPlayersToSleep(UpdateContext ctx) {
-        int nPlayersSleeping = ctx.playersSleeping.size();
-        int nPlayersTotal = ctx.playersTotal.size();
+    private boolean enoughPlayersToSleep(Player caused) {
+        List<Player> players = world.getPlayers();
+
+        int nPlayersSleeping = (int) players.stream().filter(LivingEntity::isSleeping).count();
+        int nPlayersTotal = players.size();
         int configPercent = plugin.getConfig().getInt("PlayersSleepingPercentage", 100);
         int nPlayersRequired = (int) Math.ceil(configPercent / 100.0 * nPlayersTotal);
 
@@ -71,13 +80,13 @@ public class SleepManager {
 
         if (configPercent > 100) {
             String s = "Skipping the night is disabled";
-            sendActionBar(ctx.playerThatCaused, s);
+            sendActionBar(caused, s);
         } else if (configPercent == 100) {
             String s = String.format("%s/%s players sleeping", nPlayersSleeping, nPlayersTotal);
-            ctx.playersTotal.forEach(p -> sendActionBar(p, s));
+            players.forEach(p -> sendActionBar(p, s));
         } else {
             String s = String.format("%s/%s players sleeping (%s required)", nPlayersSleeping, nPlayersTotal, nPlayersRequired);
-            ctx.playersTotal.forEach(p -> sendActionBar(p, s));
+            players.forEach(p -> sendActionBar(p, s));
         }
 
         return false;
@@ -93,11 +102,5 @@ public class SleepManager {
 
     boolean isDay(long time) {
         return time < 12300 || time > 23850;
-    }
-
-    public class UpdateContext {
-        public List<Player> playersTotal = world.getPlayers();
-        public List<Player> playersSleeping = playersTotal.stream().filter(LivingEntity::isSleeping).collect(Collectors.toList());
-        public Player playerThatCaused = null;
     }
 }

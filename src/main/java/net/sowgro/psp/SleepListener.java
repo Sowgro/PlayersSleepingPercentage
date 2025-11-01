@@ -39,41 +39,25 @@ public class SleepListener implements Listener {
 
         Player player = event.getPlayer();
         SleepManager manager = getManager(player.getWorld());
-        SleepManager.UpdateContext cxt = manager.new UpdateContext();
-
-        cxt.playerThatCaused = player;
-        cxt.playersSleeping.add(player);
-        manager.update(cxt);
+        manager.update(player);
     }
 
     @EventHandler
     public void onPlayerBedLeave(PlayerBedLeaveEvent event) {
-        Player player = event.getPlayer();
-        SleepManager manager = getManager(player.getWorld());
-        SleepManager.UpdateContext cxt = manager.new UpdateContext();
-
-        cxt.playersSleeping.remove(player);
-        manager.update(cxt);
+        SleepManager manager = getManager(event.getPlayer().getWorld());
+        manager.update();
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
-        SleepManager manager = getManager(player.getWorld());
-        SleepManager.UpdateContext cxt = manager.new UpdateContext();
-
-        manager.update(cxt);
+        SleepManager manager = getManager(event.getPlayer().getWorld());
+        manager.update();
     }
 
     @EventHandler
     public void onPlayerLeave(PlayerQuitEvent event) {
-        Player player = event.getPlayer();
-        SleepManager manager = getManager(player.getWorld());
-        SleepManager.UpdateContext cxt = manager.new UpdateContext();
-
-        cxt.playersTotal.remove(player);
-        cxt.playersSleeping.remove(player);
-        manager.update(cxt);
+        SleepManager manager = getManager(event.getPlayer().getWorld());
+        manager.update();
     }
 
     @EventHandler
@@ -82,25 +66,10 @@ public class SleepListener implements Listener {
             return;
         }
 
-        Player player = event.getPlayer();
-        {
-            SleepManager manager = getManager(event.getFrom().getWorld());
-            SleepManager.UpdateContext cxt = manager.new UpdateContext();
-
-            cxt.playersTotal.remove(player);
-            cxt.playersSleeping.remove(player);
-            manager.update(cxt);
-        }
-        {
-            SleepManager manager = getManager(event.getTo().getWorld());
-            SleepManager.UpdateContext cxt = manager.new UpdateContext();
-
-            cxt.playersTotal.add(player);
-            if (player.isSleeping()) {
-                cxt.playersSleeping.add(player);
-            }
-            manager.update(cxt);
-        }
+        SleepManager manager1 = getManager(event.getFrom().getWorld());
+        manager1.update();
+        SleepManager manager2 = getManager(event.getTo().getWorld());
+        manager2.update();
     }
 
 }
