@@ -83,7 +83,6 @@ public class SleepListener implements Listener {
         }
 
         Player player = event.getPlayer();
-
         {
             SleepManager manager = getManager(event.getFrom().getWorld());
             SleepManager.UpdateContext cxt = manager.new UpdateContext();
@@ -92,7 +91,6 @@ public class SleepListener implements Listener {
             cxt.playersSleeping.remove(player);
             manager.update(cxt);
         }
-
         {
             SleepManager manager = getManager(event.getTo().getWorld());
             SleepManager.UpdateContext cxt = manager.new UpdateContext();

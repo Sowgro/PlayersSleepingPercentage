@@ -26,9 +26,11 @@ public class SleepManager {
         taskID = -1;
     }
 
-    void update(UpdateContext context) {
-        if (enoughPlayersToSleep(context)) {
+    void update(UpdateContext ctx) {
+        if (enoughPlayersToSleep(ctx)) {
             if (taskID == null) {
+                String s = "Skipping the night";
+                ctx.playersTotal.forEach(p -> sendActionBar(p, s));
                 taskID = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, this::skipNight, 100L);
             }
         } else {
@@ -64,8 +66,6 @@ public class SleepManager {
         prevPlayersSleeping = nPlayersSleeping;
 
         if (nPlayersSleeping >= nPlayersRequired) {
-            String s = "Skipping the night";
-            ctx.playersTotal.forEach(p -> sendActionBar(p, s));
             return true;
         }
 
@@ -79,6 +79,7 @@ public class SleepManager {
             String s = String.format("%s/%s players sleeping (%s required)", nPlayersSleeping, nPlayersTotal, nPlayersRequired);
             ctx.playersTotal.forEach(p -> sendActionBar(p, s));
         }
+
         return false;
     }
 
