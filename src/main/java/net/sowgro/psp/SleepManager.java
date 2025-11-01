@@ -34,13 +34,31 @@ public class SleepManager {
     }
 
     private synchronized void updateTask(Player caused) {
-        if (enoughPlayersToSleep(caused)) {
+        SleepCalculator sc = new SleepCalculator();
+
+        if (sc.enoughPlayersToSleep) {
             if (taskID == null) {
-                String s = "Skipping the night";
-                world.getPlayers().forEach(p -> sendActionBar(p, s));
+                //message
+                sendActionBar(world.getPlayers(), "Skipping the night");
+
+                //update task
                 taskID = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, this::skipNightTask, 100L);
             }
         } else {
+            //message
+            if (sc.isRelevant) {
+                if (sc.configPercent > 100) {
+                    sendActionBar(caused, "Skipping the night is disabled");
+                } else if (sc.configPercent == 100) {
+                    String s = String.format("%s/%s players sleeping", sc.nPlayersSleeping, sc.nPlayersTotal);
+                    sendActionBar(world.getPlayers(), s);
+                } else {
+                    String s = String.format("%s/%s players sleeping (%s required)", sc.nPlayersSleeping, sc.nPlayersTotal, sc.nPlayersRequired);
+                    sendActionBar(world.getPlayers(), s);
+                }
+            }
+
+            //update task
             if (taskID != null) {
                 Bukkit.getScheduler().cancelTask(taskID);
                 taskID = null;
@@ -55,44 +73,11 @@ public class SleepManager {
         taskID = null;
     }
 
-    /**
-     * Decides if there are enough players sleeping to satisfy the percentage in the config
-     *
-     * @param caused event sender
-     * @return True if there are enough players sleeping
-     */
-    private boolean enoughPlayersToSleep(Player caused) {
-        List<Player> players = world.getPlayers();
-
-        int nPlayersSleeping = (int) players.stream().filter(LivingEntity::isSleeping).count();
-        int nPlayersTotal = players.size();
-        int configPercent = plugin.getConfig().getInt("PlayersSleepingPercentage", 100);
-        int nPlayersRequired = (int) Math.ceil(configPercent / 100.0 * nPlayersTotal);
-
-        if ((nPlayersSleeping == 0 && prevPlayersSleeping == 0) || isDay(world.getTime())) {
-            return false;
-        }
-        prevPlayersSleeping = nPlayersSleeping;
-
-        if (nPlayersSleeping >= nPlayersRequired) {
-            return true;
-        }
-
-        if (configPercent > 100) {
-            String s = "Skipping the night is disabled";
-            sendActionBar(caused, s);
-        } else if (configPercent == 100) {
-            String s = String.format("%s/%s players sleeping", nPlayersSleeping, nPlayersTotal);
-            players.forEach(p -> sendActionBar(p, s));
-        } else {
-            String s = String.format("%s/%s players sleeping (%s required)", nPlayersSleeping, nPlayersTotal, nPlayersRequired);
-            players.forEach(p -> sendActionBar(p, s));
-        }
-
-        return false;
+    private void sendActionBar(List<Player> player, String message) {
+        player.forEach(p -> sendActionBar(p, message));
     }
 
-    void sendActionBar(Player player, String message) {
+    private void sendActionBar(Player player, String message) {
         if (player == null) {
             return;
         }
@@ -100,7 +85,17 @@ public class SleepManager {
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
     }
 
-    boolean isDay(long time) {
-        return time < 12300 || time > 23850;
+    private class SleepCalculator {
+        final int nPlayersSleeping = (int) world.getPlayers().stream().filter(LivingEntity::isSleeping).count();
+        final int nPlayersTotal = world.getPlayers().size();
+        final int configPercent = plugin.getConfig().getInt("PlayersSleepingPercentage", 100);
+        final int nPlayersRequired = (int) Math.ceil(configPercent / 100.0 * nPlayersTotal);
+        final boolean isDay = 12300 > world.getTime() || world.getTime() > 23850;
+        boolean isRelevant = !(nPlayersSleeping == 0 && prevPlayersSleeping == 0) && !isDay;
+        boolean enoughPlayersToSleep = nPlayersSleeping >= nPlayersRequired && !isDay;
+
+        SleepCalculator() {
+            prevPlayersSleeping = nPlayersSleeping;
+        }
     }
 }
